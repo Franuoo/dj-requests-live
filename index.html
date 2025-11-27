@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zamów Piosenkę na Imprezie</title>
+    <style>
+        /* Prosty i mobilny styl CSS */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 450px; margin: 0 auto; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+        h2 { text-align: center; color: #e91e63; margin-bottom: 25px; }
+        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 14px; background-color: #e91e63; color: white; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; transition: background-color 0.3s; }
+        button:disabled { background-color: #ffcdd2; cursor: not-allowed; }
+        button:not(:disabled):hover { background-color: #c2185b; }
+        .ig-message { 
+            margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center;
+            display: none; /* Ukryte na początku */
+            background-color: #fff3e0; /* Jasny pomarańcz */
+            border: 1px solid #ff9800;
+        }
+        .ig-message.active { display: block; }
+        .ig-link { color: #ff9800; font-weight: bold; text-decoration: none; display: block; margin-top: 10px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🎵 Zamów Piosenkę!</h2>
+        
+        <form id="requestForm">
+            
+            <input type="text" id="nameInput" placeholder="Twoje Imię (np. Ania)" required>
+            <input type="text" id="songInput" placeholder="Tytuł Piosenki i Wykonawca" required>
+            
+            <button type="submit" id="submitButton" disabled>Wyślij Zamówienie</button>
+        </form>
+
+        <div class="ig-message" id="igMessage">
+            Dziękujemy! Aby aktywować przycisk "Wyślij", **najpierw musisz zaobserwować mnie na Instagramie**:
+            <a href="https://www.instagram.com/weisbrott/" target="_blank" class="ig-link" id="igLink">🔗 KLIKNIJ TUTAJ, ABY ZAOBSERWOWAĆ</a>
+        </div>
+        
+        <p id="successMessage" style="color: green; text-align: center; margin-top: 15px; display: none;">✅ Zamówienie wysłane! Dzięki!</p>
+    </div>
+
+    <script>
+        // === KONFIGURACJA GOOGLE FORMS ===
+        const FORM_ACTION_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScky3cRVzlwJHFr_6P1U4_8OJuBUv7zg6i5b5Cr80lrd4gf3Q/formResponse'; 
+        const NAME_ENTRY_ID = 'entry.1624832666'; 
+        const SONG_ENTRY_ID = 'entry.372478141'; 
+        const INSTAGRAM_URL = 'https://www.instagram.com/weisbrott/'; 
+        // =================================
+
+        const form = document.getElementById('requestForm');
+        const submitButton = document.getElementById('submitButton');
+        const igMessage = document.getElementById('igMessage');
+        const igLink = document.getElementById('igLink');
+        const successMessage = document.getElementById('successMessage');
+        let isInstagramFollowed = false;
+        
+        igLink.href = INSTAGRAM_URL;
+
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+
+            if (!isInstagramFollowed) {
+                igMessage.classList.add('active'); 
+                submitButton.disabled = true;
+                submitButton.textContent = 'Wyślij Zamówienie';
+            } else {
+                sendToGoogleForms();
+            }
+        });
+
+        // AKTYWOWANIE PRZYCISKU PO KLIKNIĘCIU W LINK IG
+        igLink.addEventListener('click', function() {
+            isInstagramFollowed = true; 
+            igMessage.style.backgroundColor = '#e8f5e9'; 
+            igMessage.innerHTML = '✅ **Dziękujemy!** Możesz teraz kliknąć "Wyślij Zamówienie".';
+            submitButton.disabled = false; 
+            submitButton.textContent = '🔥 WYŚLIJ TERAZ!';
+        });
+
+        // WYSYŁKA DANYCH DO GOOGLE FORMS
+        async function sendToGoogleForms() {
+            const name = document.getElementById('nameInput').value;
+            const song = document.getElementById('songInput').value;
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Wysyłanie...';
+
+            const data = new FormData();
+            data.append(NAME_ENTRY_ID, name);
+            data.append(SONG_ENTRY_ID, song);
+
+            try {
+                // Fetch jest używane do wysyłania danych w tle
+                await fetch(FORM_ACTION_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    body: data
+                });
+                
+                handleSuccess();
+
+            } catch (error) {
+                console.error('Błąd wysyłki:', error);
+                handleSuccess(); 
+            }
+        }
+
+        // OBSŁUGA PO POMYŚLNYM WYSŁANIU
+        function handleSuccess() {
+            form.reset(); 
+            successMessage.style.display = 'block'; 
+            
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+                igMessage.classList.remove('active');
+                igMessage.style.backgroundColor = '#fff3e0';
+                igMessage.innerHTML = 'Dziękujemy! Aby aktywować przycisk "Wyślij", **najpierw musisz zaobserwować mnie na Instagramie**: <a href="'+INSTAGRAM_URL+'" target="_blank" class="ig-link" id="igLink">🔗 KLIKNIJ TUTAJ, ABY ZAOBSERWOWAĆ</a>';
+                submitButton.disabled = true;
+                submitButton.textContent = 'Wyślij Zamówienie';
+                isInstagramFollowed = false;
+                
+                // Ponowne przypisanie event listenera do dynamicznie zmienionego linku
+                document.getElementById('igLink').addEventListener('click', function() {
+                    isInstagramFollowed = true; 
+                    igMessage.style.backgroundColor = '#e8f5e9'; 
+                    igMessage.innerHTML = '✅ **Dziękujemy!** Możesz teraz kliknąć "Wyślij Zamówienie".';
+                    submitButton.disabled = false; 
+                    submitButton.textContent = '🔥 WYŚLIJ TERAZ!';
+                });
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
